@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { ObjectId } from "mongodb";
+import { verifyToken } from "../middleware/verifyToken.js";
 
 const router = Router();
 
@@ -22,12 +23,14 @@ function cleanBook(body = {}) {
   return { data: { title, author, category, image, description, totalCopies } };
 }
 
+
 router.get("/", async (req, res) => {
   const limit = Math.min(Number.parseInt(req.query.limit, 10) || 0, 100);
   const cursor = req.db.collection("books").find().sort({ createdAt: -1 });
   if (limit) cursor.limit(limit);
   res.json(await cursor.toArray());
 });
+
 
 router.get("/:id", async (req, res) => {
   if (!isValidId(req.params.id)) return res.status(400).json({ message: "Invalid book id" });
@@ -36,15 +39,16 @@ router.get("/:id", async (req, res) => {
   res.json(book);
 });
 
-router.post("/", async (req, res) => {
+
+router.post("/", verifyToken, async (req, res) => {
   const { data, error } = cleanBook(req.body);
   if (error) return res.status(400).json({ message: error });
 
   const doc = {
     ...data,
     availableCopies: data.totalCopies,
-    userName: String(req.body.userName || "Anonymous"),
-    userEmail: String(req.body.userEmail || ""),
+    userName: req.user.name,
+    userEmail: req.user.email,
     createdAt: new Date(),
   };
   const result = await req.db.collection("books").insertOne(doc);
