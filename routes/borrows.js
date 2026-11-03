@@ -5,8 +5,6 @@ import { verifyToken } from "../middleware/verifyToken.js";
 const router = Router();
 const BORROW_DAYS = 7;
 const isValidId = (id) => typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
-
-
 router.post("/", verifyToken, async (req, res) => {
   const { bookId } = req.body ?? {};
   if (!isValidId(bookId)) return res.status(400).json({ message: "Invalid book id" });
@@ -52,6 +50,32 @@ router.post("/", verifyToken, async (req, res) => {
   }
 
   res.status(201).json(doc);
+});
+
+router.get("/", verifyToken, async (req, res) => {
+  const list = await req.db
+    .collection("borrows")
+    .find({ userEmail: req.user.email })
+    .sort({ borrowDate: -1 })
+    .toArray();
+  res.json(list);
+});
+
+router.delete("/:id", verifyToken, async (req, res) => {
+  if (!isValidId(req.params.id)) return res.status(400).json({ message: "Invalid borrow id" });
+
+  const borrows = req.db.collection("borrows");
+  const borrow = await borrows.findOne({ _id: new ObjectId(req.params.id) });
+  if (!borrow) return res.status(404).json({ message: "Borrow record not found" });
+  if (borrow.userEmail !== req.user.email) {
+    return res.status(403).json({ message: "You can only return your own borrows" });
+  }
+
+  await borrows.deleteOne({ _id: borrow._id });
+  await req.db
+    .collection("books")
+    .updateOne({ _id: new ObjectId(borrow.bookId) }, { $inc: { availableCopies: 1 } });
+  res.json({ returned: true });
 });
 
 export default router;
