@@ -23,7 +23,7 @@ function cleanBook(body = {}) {
   return { data: { title, author, category, image, description, totalCopies } };
 }
 
-
+// GET /books?limit=6  -> newest first (public)
 router.get("/", async (req, res) => {
   const limit = Math.min(Number.parseInt(req.query.limit, 10) || 0, 100);
   const cursor = req.db.collection("books").find().sort({ createdAt: -1 });
@@ -31,7 +31,7 @@ router.get("/", async (req, res) => {
   res.json(await cursor.toArray());
 });
 
-
+// GET /books/:id
 router.get("/:id", async (req, res) => {
   if (!isValidId(req.params.id)) return res.status(400).json({ message: "Invalid book id" });
   const book = await req.db.collection("books").findOne({ _id: new ObjectId(req.params.id) });
@@ -39,7 +39,7 @@ router.get("/:id", async (req, res) => {
   res.json(book);
 });
 
-
+// POST /books  (protected) - owner info comes from the verified token, not the body
 router.post("/", verifyToken, async (req, res) => {
   const { data, error } = cleanBook(req.body);
   if (error) return res.status(400).json({ message: error });
@@ -55,7 +55,7 @@ router.post("/", verifyToken, async (req, res) => {
   res.status(201).json({ _id: result.insertedId, ...doc });
 });
 
-
+// PATCH /books/:id  (protected, owner only)
 router.patch("/:id", verifyToken, async (req, res) => {
   if (!isValidId(req.params.id)) return res.status(400).json({ message: "Invalid book id" });
 
@@ -69,7 +69,7 @@ router.patch("/:id", verifyToken, async (req, res) => {
   const { data, error } = cleanBook({ ...book, ...req.body });
   if (error) return res.status(400).json({ message: error });
 
- 
+  // Keep "available" in step with the change in total copies
   const diff = data.totalCopies - book.totalCopies;
   const availableCopies = Math.max(book.availableCopies + diff, 0);
 
@@ -81,7 +81,7 @@ router.patch("/:id", verifyToken, async (req, res) => {
   res.json(updated);
 });
 
-
+// DELETE /books/:id  (protected, owner only)
 router.delete("/:id", verifyToken, async (req, res) => {
   if (!isValidId(req.params.id)) return res.status(400).json({ message: "Invalid book id" });
 
