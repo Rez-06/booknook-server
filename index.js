@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { getDb } from "./db.js";
 import booksRouter from "./routes/books.js";
+import borrowsRouter from "./routes/borrows.js";
 
 const app = express();
 
@@ -13,7 +14,6 @@ app.get("/", (req, res) => {
   res.json({ app: "BookNook API", status: "running" });
 });
 
-// Attach the database to every request
 app.use(async (req, res, next) => {
   try {
     req.db = await getDb();
@@ -25,6 +25,7 @@ app.use(async (req, res, next) => {
 });
 
 app.use("/books", booksRouter);
+app.use("/borrows", borrowsRouter);
 
 app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 app.use((err, req, res, next) => {
@@ -32,7 +33,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Server error" });
 });
 
-// Vercel runs the exported app; locally we start a normal server.
 if (!process.env.VERCEL) {
   const port = process.env.PORT || 5000;
   app.listen(port, () => console.log(`BookNook server running on http://localhost:${port}`));
