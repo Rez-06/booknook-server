@@ -7,7 +7,11 @@ import borrowsRouter from "./routes/borrows.js";
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:3000")
+  .split(",")
+  .map((o) => o.trim().replace(/\/$/, ""));
+
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -32,6 +36,7 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ message: "Server error" });
 });
+
 
 if (!process.env.VERCEL) {
   const port = process.env.PORT || 5000;
