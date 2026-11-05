@@ -2,7 +2,7 @@
 
 Express + MongoDB API for BookNook, a small online library.
 
-Live API: _Vercel URL_
+Live API: https://booknook-server-rez24.vercel.app/
 
 ## Endpoints
 
